@@ -96,6 +96,7 @@ model Issuer {
   ticker      String?
   sector      String? // sovereign, financials, energy, …
   country     String?
+  market      String? // desk/market code, e.g. "MX", "BR", "NG"
   creditRating String? // e.g. "BBB+"
   notes       String?
   createdAt   DateTime     @default(now())
@@ -109,6 +110,9 @@ enum InstrumentType {
   municipal
   agency
   supranational
+  tbill // short-dated sovereign bills
+  commercial_paper // short-dated corporate paper
+  trade_finance // trade-finance instruments (LC-backed notes, receivables)
 }
 
 model Instrument {
@@ -138,6 +142,7 @@ model MarketObservation {
   instrumentId String?
   instrument   Instrument? @relation(fields: [instrumentId], references: [id])
   series       String? // for non-instrument series, e.g. "UST10Y", "HY_OAS"
+  market       String? // desk/market code, e.g. "US", "EM", "MX"
   metric       Metric
   value        Float
   asOf         DateTime
@@ -145,6 +150,7 @@ model MarketObservation {
   createdAt    DateTime    @default(now())
 
   @@index([series, asOf])
+  @@index([market, asOf])
 }
 
 enum NoteKind {
@@ -152,6 +158,8 @@ enum NoteKind {
   credit_note
   opportunity
   macro
+  em_market_note // per-market EM fixed-income read
+  em_digest // periodic long-form digest across selected markets
 }
 
 enum NoteStatus {
@@ -165,12 +173,15 @@ enum NoteStatus {
 model ResearchNote {
   id          String      @id @default(cuid())
   kind        NoteKind
+  market      String? // desk/market code this note covers, e.g. "MX"
   title       String
   body        String
   status      NoteStatus  @default(draft)
   publishedAt DateTime?
   createdAt   DateTime    @default(now())
   recommendations Recommendation[]
+
+  @@index([market, createdAt])
 }
 
 enum RecAction {
@@ -188,9 +199,14 @@ model Recommendation {
   issuer       Issuer?      @relation(fields: [issuerId], references: [id])
   instrumentId String?
   instrument   Instrument?  @relation(fields: [instrumentId], references: [id])
+  market       String? // desk/market code, e.g. "MX"
   action       RecAction
   rationale    String
   conviction   Int          @default(3) // 1..5
+  actionability Int         @default(3) // 1..5 — how tradable/timely right now
+  shareability  Int         @default(3) // 1..5 — how compelling as published content
   horizon      String? // "tactical", "3-6m", "strategic"
   createdAt    DateTime     @default(now())
+
+  @@index([market, createdAt])
 }
