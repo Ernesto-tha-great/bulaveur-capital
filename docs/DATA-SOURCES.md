@@ -60,6 +60,12 @@ Confirmed EM series on FRED:
 - World Bank sovereign fundamentals (reserves, external debt, debt/GDP, current
   account, CPI, growth) → `src/tools/data/worldbank.ts` (keyless), live-verified
   for MX/BR/NG.
+- **Brazil BCB SGS** (Selic, IPCA, USD/BRL) → `src/tools/data/bcb.ts` (keyless),
+  live-verified.
+- **Mexico Banxico SIE** (USD/MXN FIX, TIIE 28d) → `src/tools/data/banxico.ts` —
+  needs a free `BANXICO_TOKEN`; degrades to EM aggregates + fundamentals without one.
+- Sources are assembled per market by the desk agent (`src/agents/em-desk.ts`),
+  dispatched via `src/tools/data/local.ts` on the registry's `localSource`.
 
 ## 3. Central-bank APIs by country (best free source for *local* yields)
 

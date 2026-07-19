@@ -13,6 +13,7 @@
     "sync:data": "tsx src/scripts/sync-data.ts",
     "seed:watchlist": "tsx src/scripts/seed-watchlist.ts",
     "mission": "tsx src/scripts/run-mission.ts",
+    "desk": "tsx src/scripts/run-desk.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
