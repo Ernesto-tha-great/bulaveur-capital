@@ -1,0 +1,24 @@
+# Local data services. `docker compose up -d` then `pnpm db:migrate`.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bulaveur
+      POSTGRES_PASSWORD: bulaveur
+      POSTGRES_DB: bulaveur
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bulaveur"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    volumes: ["redisdata:/data"]
+volumes:
+  pgdata:
+  redisdata:

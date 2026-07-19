@@ -1,0 +1,5 @@
+# Automatic HTTPS in front of the agent service (approvals + webhooks).
+bulaveur-capital.example.com {
+	encode gzip
+	reverse_proxy localhost:8080
+}

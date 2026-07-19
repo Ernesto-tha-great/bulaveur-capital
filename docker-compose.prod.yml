@@ -1,0 +1,48 @@
+# Production stack for the VPS: app + postgres(pgvector) + redis in one compose.
+# Usage on the server:
+#   cp .env.example .env   # fill prod keys
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   docker compose -f docker-compose.prod.yml exec app pnpm db:deploy
+# Put Caddy in front for TLS (see Caddyfile + docs/OPS.md).
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bulaveur
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bulaveur}
+      POSTGRES_DB: bulaveur
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bulaveur"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # override to point at the compose services
+      DATABASE_URL: postgresql://bulaveur:${POSTGRES_PASSWORD:-bulaveur}@postgres:5432/bulaveur?schema=public
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
+  redisdata:

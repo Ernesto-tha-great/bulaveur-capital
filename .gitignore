@@ -1,0 +1,17 @@
+node_modules/
+dist/
+
+# Private working notes — see README.md for the public doc.
+CONTEXT.md
+
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+.vitest/
+prisma/*.db
+.langfuse/
+pgdata/
+redisdata/

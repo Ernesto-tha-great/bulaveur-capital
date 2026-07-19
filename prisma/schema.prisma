@@ -1,0 +1,196 @@
+// Bulaveur Capital data model — a fixed-income research firm.
+// The CORE models block (Document…Publication) is identical across every projectb
+// app and is what the shared src/core/ depends on. Below it: the fixed-income domain.
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+// ── Shared core models (do not rename — src/core/ depends on these) ───
+model Document {
+  id        String   @id @default(cuid())
+  source    String
+  url       String?
+  title     String?
+  content   String
+  hash      String   @unique
+  metadata  Json?
+  createdAt DateTime @default(now())
+  chunks    Chunk[]
+}
+
+model Chunk {
+  id         String                     @id @default(cuid())
+  documentId String
+  document   Document                   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  idx        Int
+  content    String
+  embedding  Unsupported("vector(768)")?
+  metadata   Json?
+
+  @@index([documentId])
+}
+
+enum RunStatus {
+  running
+  succeeded
+  failed
+}
+
+model AgentRun {
+  id         String    @id @default(cuid())
+  mission    String
+  status     RunStatus @default(running)
+  costUsd    Float     @default(0)
+  tokensIn   Int       @default(0)
+  tokensOut  Int       @default(0)
+  traceId    String?
+  error      String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+  auto_approved
+}
+
+model ApprovalItem {
+  id          String         @id @default(cuid())
+  kind        String
+  summary     String
+  payload     Json
+  status      ApprovalStatus @default(pending)
+  reason      String?
+  resolvedBy  String?
+  createdAt   DateTime       @default(now())
+  resolvedAt  DateTime?
+  publication Publication?
+}
+
+model Publication {
+  id             String        @id @default(cuid())
+  channel        String
+  externalId     String?
+  url            String?
+  content        String
+  approvalItemId String?       @unique
+  approvalItem   ApprovalItem? @relation(fields: [approvalItemId], references: [id])
+  publishedAt    DateTime      @default(now())
+}
+
+// ── Fixed-income domain ───────────────────────────────────────────────
+
+model Issuer {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  ticker      String?
+  sector      String? // sovereign, financials, energy, …
+  country     String?
+  creditRating String? // e.g. "BBB+"
+  notes       String?
+  createdAt   DateTime     @default(now())
+  instruments Instrument[]
+  recommendations Recommendation[]
+}
+
+enum InstrumentType {
+  sovereign
+  corporate
+  municipal
+  agency
+  supranational
+}
+
+model Instrument {
+  id         String         @id @default(cuid())
+  issuerId   String?
+  issuer     Issuer?        @relation(fields: [issuerId], references: [id])
+  isin       String?        @unique
+  name       String
+  type       InstrumentType
+  couponPct  Float?
+  maturity   DateTime?
+  currency   String         @default("USD")
+  createdAt  DateTime       @default(now())
+  observations MarketObservation[]
+  recommendations Recommendation[]
+}
+
+enum Metric {
+  yield
+  spread // OAS / G-spread bps
+  price
+  duration
+}
+
+model MarketObservation {
+  id           String      @id @default(cuid())
+  instrumentId String?
+  instrument   Instrument? @relation(fields: [instrumentId], references: [id])
+  series       String? // for non-instrument series, e.g. "UST10Y", "HY_OAS"
+  metric       Metric
+  value        Float
+  asOf         DateTime
+  source       String
+  createdAt    DateTime    @default(now())
+
+  @@index([series, asOf])
+}
+
+enum NoteKind {
+  morning_brief
+  credit_note
+  opportunity
+  macro
+}
+
+enum NoteStatus {
+  draft
+  in_review
+  approved
+  published
+  rejected
+}
+
+model ResearchNote {
+  id          String      @id @default(cuid())
+  kind        NoteKind
+  title       String
+  body        String
+  status      NoteStatus  @default(draft)
+  publishedAt DateTime?
+  createdAt   DateTime    @default(now())
+  recommendations Recommendation[]
+}
+
+enum RecAction {
+  buy
+  sell
+  hold
+  watch
+}
+
+model Recommendation {
+  id           String       @id @default(cuid())
+  noteId       String?
+  note         ResearchNote? @relation(fields: [noteId], references: [id])
+  issuerId     String?
+  issuer       Issuer?      @relation(fields: [issuerId], references: [id])
+  instrumentId String?
+  instrument   Instrument?  @relation(fields: [instrumentId], references: [id])
+  action       RecAction
+  rationale    String
+  conviction   Int          @default(3) // 1..5
+  horizon      String? // "tactical", "3-6m", "strategic"
+  createdAt    DateTime     @default(now())
+}
