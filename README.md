@@ -79,6 +79,21 @@ Full detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 | `opportunity-scan` | Every 2h, US session | **RVAgent** screen → opportunity note → guards → approval → **X thread** |
 | `weekly-credit-note` | Wed 14:00 | EDGAR→RAG + macro/credit/RV workers → synthesis → **CriticAgent** → recommendations → approval → **newsletter** |
 
+## Emerging-markets desks
+
+Fixed-income coverage is going **global with an EM focus**, split into **one desk
+per market** so nothing slips. Each desk covers the full local FI stack — govvies
+/ curve, T-bills, commercial paper, hard-currency credit, FX — grounded only in
+that market's data, and self-scores every idea on **actionability × shareability**
+so the desk output can be ranked into what's worth publishing.
+
+- Markets are pure config in [src/markets/registry.ts](src/markets/registry.ts)
+  (LatAm · EM Europe · MENA · Africa · EM Asia).
+- Data is free-first (see [docs/DATA-SOURCES.md](docs/DATA-SOURCES.md)): FRED EM
+  aggregate spreads + World Bank fundamentals for every market, upgraded to a
+  central bank's own curve where a free API exists (Brazil BCB, Mexico Banxico).
+- Run one on demand: `pnpm desk BR` → a grounded, ranked market note.
+
 ## Tech stack
 
 TypeScript (ESM) · Node 22 · **tsx** (run TS directly, no build step) ·
@@ -161,6 +176,7 @@ Compliance is non-negotiable and built into the publish path, not bolted on:
 | `pnpm seed:watchlist` | Seed the issuer watchlist |
 | `pnpm ingest [ticker]` | Ingest SEC filings into RAG |
 | `pnpm mission <name>` | Run one mission on demand |
+| `pnpm desk <market>` | Run one EM market desk (e.g. `BR`, `MX`) → ranked note |
 | `pnpm test` / `pnpm eval` | Fabrication guard (offline) + LLM-as-judge eval |
 | `pnpm typecheck` | `tsc --noEmit` — the CI gate |
 | `pnpm db:migrate` / `db:deploy` | Prisma migrate (dev / prod) |
