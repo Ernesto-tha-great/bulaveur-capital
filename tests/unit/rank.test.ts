@@ -25,6 +25,6 @@ describe("desk idea ranking (actionable × shareable)", () => {
 
   it("breaks ties on conviction", () => {
     const ranked = rankIdeas([idea(4, 4, 1), idea(4, 4, 5)]);
-    expect(ranked[0].conviction).toBe(5);
+    expect(ranked[0]!.conviction).toBe(5);
   });
 });
