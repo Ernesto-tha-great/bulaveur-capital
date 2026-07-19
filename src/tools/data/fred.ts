@@ -1,6 +1,6 @@
 import { prisma } from "../../core/db";
 import { logger } from "../../core/logger";
-import { TRACKED_SERIES, type SeriesConfig } from "./series";
+import { TRACKED_SERIES, seriesForMarket, type SeriesConfig } from "./series";
 
 /**
  * FRED (St. Louis Fed) data client. Free API key (FRED_API_KEY). Pulls the latest
@@ -43,6 +43,7 @@ export async function syncMarketData(): Promise<number> {
       await prisma.marketObservation.create({
         data: {
           series: s.series,
+          market: s.market,
           metric: s.metric,
           value: latest.value,
           asOf: new Date(latest.date),
@@ -67,10 +68,13 @@ export interface SnapshotPoint {
   unit: SeriesConfig["unit"];
 }
 
-/** Latest stored value for each tracked series — what the agents read. */
-export async function getMarketSnapshot(): Promise<SnapshotPoint[]> {
+/**
+ * Latest stored value for each tracked series — what the agents read. Pass a
+ * market ("US", "EM", …) to scope to that desk; omit for every tracked series.
+ */
+export async function getMarketSnapshot(market?: string): Promise<SnapshotPoint[]> {
   const out: SnapshotPoint[] = [];
-  for (const s of TRACKED_SERIES) {
+  for (const s of market ? seriesForMarket(market) : TRACKED_SERIES) {
     const latest = await prisma.marketObservation.findFirst({
       where: { series: s.series },
       orderBy: { asOf: "desc" },
